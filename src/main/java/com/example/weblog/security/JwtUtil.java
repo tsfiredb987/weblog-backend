@@ -1,16 +1,16 @@
 package com.example.weblog.security;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.util.Date;
 
 // JWT 工具類
 @Component
 public class JwtUtil {
-    private final String SECRET_KEY = "your-secret-key"; // 請替換為安全金鑰
+    private final Key SECRET_KEY = Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS512);
     private final long EXPIRATION_TIME = 1000 * 60 * 60; // 1 小時
 
     // 生成 JWT
@@ -19,14 +19,15 @@ public class JwtUtil {
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+                .signWith(SECRET_KEY)
                 .compact();
     }
 
     // 解析 JWT
     public String extractUsername(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder()
                 .setSigningKey(SECRET_KEY)
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
@@ -39,8 +40,9 @@ public class JwtUtil {
     }
 
     private boolean isTokenExpired(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder()
                 .setSigningKey(SECRET_KEY)
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getExpiration()

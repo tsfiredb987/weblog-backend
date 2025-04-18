@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -23,11 +24,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
-    private final AuthenticationConfiguration authenticationConfiguration;
+    private final UserDetailsService userDetailsService;
 
-    public SecurityConfig(JwtUtil jwtUtil, AuthenticationConfiguration authenticationConfiguration) {
+    public SecurityConfig(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
         this.jwtUtil = jwtUtil;
-        this.authenticationConfiguration = authenticationConfiguration;
+        this.userDetailsService = userDetailsService;
     }
 
     @Bean
@@ -36,25 +37,25 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager() throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors().and() // 啟用 CORS
-                .csrf().disable() // 禁用 CSRF（無狀態應用）
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .authorizeRequests()
-                .antMatchers("/api/auth/**").permitAll() // 允許公開訪問認證 API
-                .antMatchers("/api/articles").permitAll() // 允許公開讀取文章
-                .antMatchers("/api/articles/search").permitAll() // 允許公開搜尋
-                .antMatchers("/api/articles/**").authenticated() // 保護文章管理 API
-                .anyRequest().authenticated()
-                .and()
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable()) // 禁用 CSRF（無狀態應用）
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 啟用 CORS
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll() // 公開認證 API
+                        .requestMatchers("/api/articles").permitAll() // 公開讀取文章
+                        .requestMatchers("/api/articles/search").permitAll() // 公開搜尋
+                        .requestMatchers("/api/articles/**").authenticated() // 保護文章管理 API
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

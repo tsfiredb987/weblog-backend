@@ -1,6 +1,6 @@
 package com.example.weblog.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
