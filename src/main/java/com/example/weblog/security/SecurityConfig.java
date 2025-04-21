@@ -2,10 +2,12 @@ package com.example.weblog.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -44,14 +46,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // 禁用 CSRF（無狀態應用）
+                .csrf(AbstractHttpConfigurer::disable) // 禁用 CSRF（無狀態應用）
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 啟用 CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // 公開認證 API
-                        .requestMatchers("/api/articles").permitAll() // 公開讀取文章
-                        .requestMatchers("/api/articles/search").permitAll() // 公開搜尋
-                        .requestMatchers("/api/articles/**").authenticated() // 保護文章管理 API
+//                        .requestMatchers("/api/articles/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/articles/**").permitAll() // GET 請求公開
+                        .requestMatchers(HttpMethod.POST, "/api/articles/**").authenticated() // POST 請求需認證
+//                        .requestMatchers("/api/articles/**").authenticated() // 保護文章管理 API
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),

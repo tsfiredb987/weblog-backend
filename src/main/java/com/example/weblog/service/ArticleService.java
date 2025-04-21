@@ -6,6 +6,9 @@ import com.example.weblog.entity.User;
 import com.example.weblog.repository.ArticleRepository;
 import com.example.weblog.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,7 +43,7 @@ public class ArticleService {
     // 新增文章
     public ArticleDTO createArticle(ArticleDTO articleDTO, String username) {
         User author = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "用戶不存在"));
         Article article = new Article();
         article.setTitle(articleDTO.getTitle());
         article.setContent(articleDTO.getContent());

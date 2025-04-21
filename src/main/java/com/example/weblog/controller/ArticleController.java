@@ -2,8 +2,14 @@ package com.example.weblog.controller;
 
 import com.example.weblog.dto.ArticleDTO;
 import com.example.weblog.service.ArticleService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -12,6 +18,7 @@ import java.util.List;
 @RequestMapping("/api/articles")
 public class ArticleController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ArticleController.class);
     private final ArticleService articleService;
 
     public ArticleController(ArticleService articleService) {
@@ -30,10 +37,23 @@ public class ArticleController {
         return articleService.getArticleById(id);
     }
 
+//    @GetMapping("/{id}")
+//    public ArticleDTO getArticle(@PathVariable Long id) {
+//        return articleService.getArticleById(id);
+//    }
+
     // 新增文章
     @PostMapping
-    public ArticleDTO createArticle(@RequestBody ArticleDTO articleDTO, Authentication authentication) {
-        return articleService.createArticle(articleDTO, authentication.getName());
+    public ResponseEntity<ArticleDTO> createArticle(@RequestBody ArticleDTO articleDTO,
+                                                    Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            logger.warn("未授權的文章創建嘗試");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "請登入以創建文章");
+        }
+        String username = authentication.getName();
+        logger.debug("用戶 {} 正在創建文章", username);
+        ArticleDTO createdArticle = articleService.createArticle(articleDTO, username);
+        return ResponseEntity.ok(createdArticle);
     }
 
     // 更新文章
